@@ -3,7 +3,7 @@ const router = new Router();
 const orderController = require("../controllers/orderController");
 const authMiddleware = require("../middleware/middleware");
 
-router.get("/webhook", orderController.handlePaymentWebhook);
+router.post("/webhook", orderController.handlePaymentWebhook);
 
 router.post("/", orderController.createOrder);
 

@@ -196,6 +196,7 @@ class OrderController {
 
       const event = req.body;
 
+      // Проверка подписи (если нужно)
       const signature = req.headers["yookassa-signature"];
       if (signature) {
         const isValid = yookassaService.validateWebhookSignature(
@@ -208,19 +209,23 @@ class OrderController {
         }
       }
 
-      if (
-        event.type === "notification" &&
-        event.event === "payment.succeeded"
-      ) {
+      // Получаем событие - в ЮKassa это поле 'event' (не 'type')
+      const eventType = event.event;
+
+      console.log("Event type:", eventType);
+
+      // Обработка успешного платежа
+      if (eventType === "payment.succeeded") {
         const payment = event.object;
         const paymentId = payment.id;
         const metadata = payment.metadata || {};
 
-        console.log(`Payment succeeded: ${paymentId}`);
+        console.log(`✅ Payment succeeded: ${paymentId}`);
         console.log("Metadata:", metadata);
 
         let order = null;
 
+        // Поиск заказа по metadata.orderId или paymentId
         if (metadata.orderId) {
           order = await Order.findByPk(metadata.orderId);
         }
@@ -243,16 +248,19 @@ class OrderController {
             console.log(`Order ${order.id} already paid`);
           }
         } else {
-          console.log(`Order not found for payment ${paymentId}`);
+          console.log(`⚠️ Order not found for payment ${paymentId}`);
+          // Можно сохранить в отдельную таблицу для ручной обработки
         }
       }
-
-      if (event.event === "payment.waiting_for_capture") {
-        console.log("Payment waiting for capture:", event.object.id);
+      // Обработка ожидания захвата
+      else if (eventType === "payment.waiting_for_capture") {
+        console.log("⏳ Payment waiting for capture:", event.object.id);
+        // Здесь можно добавить логику подтверждения
+        // await yookassaService.capturePayment(event.object.id);
       }
-
-      if (event.event === "payment.canceled") {
-        console.log("Payment canceled:", event.object.id);
+      // Обработка отмены платежа
+      else if (eventType === "payment.canceled") {
+        console.log("❌ Payment canceled:", event.object.id);
         const paymentId = event.object.id;
         const order = await Order.findOne({ where: { paymentId: paymentId } });
         if (order) {
@@ -261,15 +269,19 @@ class OrderController {
           });
           console.log(`Order ${order.id} marked as canceled`);
         }
+      } else {
+        console.log(`ℹ️ Unhandled event type: ${eventType}`);
       }
 
+      // Всегда возвращаем 200 OK для ЮKassa
       return res.status(200).json({ received: true });
     } catch (error) {
       console.error("Webhook processing error:", error);
+      // Даже при ошибке возвращаем 200, чтобы ЮKassa не повторял отправку
       return res.status(200).json({ received: true, error: error.message });
     }
   }
-
+  
   async checkPaymentStatus(req, res, next) {
     try {
       const { orderId } = req.params;
