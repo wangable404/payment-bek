@@ -28,4 +28,10 @@ router.delete(
   orderController.deleteOrder,
 );
 
+router.patch(
+  "/:orderId/contribute",
+  authMiddleware,
+  orderController.contribute,
+);
+
 module.exports = router;

@@ -48,6 +48,11 @@ const Order = sequelize.define("order", {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  contribute: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   paymentId: {
     type: DataTypes.STRING,
     allowNull: true,
@@ -67,7 +72,7 @@ const Order = sequelize.define("order", {
   yookassaMetadata: {
     type: DataTypes.JSON,
     allowNull: true,
-  }
+  },
 });
 
 module.exports = {

@@ -281,7 +281,7 @@ class OrderController {
       return res.status(200).json({ received: true, error: error.message });
     }
   }
-  
+
   async checkPaymentStatus(req, res, next) {
     try {
       const { orderId } = req.params;
@@ -326,6 +326,33 @@ class OrderController {
         console.error("Error checking payment status:", err);
         return res.json({ paid: false, status: "unknown", error: err.message });
       }
+    } catch (err) {
+      return next(ApiError.badRequest(err.message));
+    }
+  }
+
+  async contribute(req, res, next) {
+    try {
+      const { orderId } = req.params;
+      const { contribute } = req.body;
+
+      const user = req.user;
+
+      if (user.role !== "ADMIN") {
+        return next(ApiError.forbidden("Нет доступа"));
+      }
+
+      const order = await Order.findByPk(orderId);
+
+      if (!order) {
+        return next(ApiError.badRequest("Заказ не найден"));
+      }
+
+      order.contribute = contribute;
+
+      await order.save();
+
+      return res.json(order);
     } catch (err) {
       return next(ApiError.badRequest(err.message));
     }
