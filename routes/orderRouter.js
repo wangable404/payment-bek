@@ -9,6 +9,8 @@ router.post("/", orderController.createOrder);
 
 router.get("/", authMiddleware, orderController.getAllOrders);
 
+router.get('/stats', authMiddleware, orderController.getOrderStats);
+
 router.get(
   "/:orderId/status",
   orderController.checkPaymentStatus,

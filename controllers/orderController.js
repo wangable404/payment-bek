@@ -95,6 +95,7 @@ class OrderController {
     }
   }
 
+  // order.controller.js
   async getAllOrders(req, res, next) {
     try {
       const user = req.user;
@@ -103,11 +104,73 @@ class OrderController {
         return next(ApiError.forbidden("Нет доступа"));
       }
 
-      const orders = await Order.findAll({
+      // Получаем параметры пагинации из запроса
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 50; // 50 заказов на страницу
+      const offset = (page - 1) * limit;
+
+      // Фильтры (опционально)
+      const filter = req.query.filter || "all"; // 'all', 'paid', 'pending'
+      const search = req.query.search || "";
+
+      // Строим условия WHERE
+      let whereClause = {};
+
+      if (filter === "paid") {
+        whereClause.paid = true;
+      } else if (filter === "pending") {
+        whereClause.paid = false;
+      }
+
+      if (search) {
+        whereClause[Op.or] = [
+          { fio: { [Op.like]: `%${search}%` } },
+          { email: { [Op.like]: `%${search}%` } },
+          { phone: { [Op.like]: `%${search}%` } },
+        ];
+      }
+
+      const { count, rows } = await Order.findAndCountAll({
+        where: whereClause,
         order: [["createdAt", "DESC"]],
+        limit: limit,
+        offset: offset,
+        attributes: { exclude: ["updatedAt"] },
       });
 
-      return res.json(orders);
+      return res.json({
+        success: true,
+        data: rows,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(count / limit),
+          totalItems: count,
+          itemsPerPage: limit,
+        },
+      });
+    } catch (err) {
+      return next(ApiError.badRequest(err.message));
+    }
+  }
+
+  async getOrderStats(req, res, next) {
+    try {
+      const user = req.user;
+
+      if (user.role !== "ADMIN") {
+        return next(ApiError.forbidden("Нет доступа"));
+      }
+
+      const total = await Order.count();
+      const paid = await Order.count({ where: { paid: true } });
+      const pending = await Order.count({ where: { paid: false } });
+
+      return res.json({
+        success: true,
+        total,
+        paid,
+        pending,
+      });
     } catch (err) {
       return next(ApiError.badRequest(err.message));
     }
