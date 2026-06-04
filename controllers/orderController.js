@@ -106,7 +106,7 @@ class OrderController {
 
       // Получаем параметры пагинации из запроса
       const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 50; // 50 заказов на страницу
+      const limit = parseInt(req.query.limit) || 15; // 50 заказов на страницу
       const offset = (page - 1) * limit;
 
       // Фильтры (опционально)
