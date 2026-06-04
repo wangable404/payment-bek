@@ -18,7 +18,7 @@ app.use("/api/v1/", router);
 app.use(errorHeandler);
 
 app.get("/", (req, res) => {
-  res.send("Dashboard is running!");
+  res.send("Payment is running!");
 });
 
 const start = async () => {
